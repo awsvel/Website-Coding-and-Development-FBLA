@@ -2,7 +2,7 @@ Welcome to my Website Coding and Development Submission: Spartan Search!
 Below will be instructions to operate and examine the website, plus additional details
 
 OPERATING THE WEBSITE:
-1. Go to the link https://website-coding-and-developme-git-690c09-alina-wasupans-projects.vercel.app/
+1. Go to the link http://website-coding-and-development-fbla-wasup.vercel.app/
 2. Enter the website
 3. Click "Found Something?" Button to submit a lost and found item
 4. Click "Claim" button to submit a form to claim an item, claimed items are marked red
