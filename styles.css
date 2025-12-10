@@ -1,0 +1,241 @@
+/* Basic layout and header styles for Spartan Search */
+
+:root{
+	/* Vegas Gold, White, and Black palette */
+	--bg: #f5f5f5;       
+	--surface: #ffffff; 
+	--muted: #0a0a0a;    
+	--accent: #C5B358;   
+	--accent-2: #0a0a0a;  
+	--text: #0a0a0a;
+}
+
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);margin:0}
+.container{max-width:1100px;margin:0 auto;padding:0 16px}
+
+.site-header{background:var(--surface);box-shadow:0 2px 8px rgba(0,0,0,0.06);position:sticky;top:0;z-index:100}
+.site-header .container{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{font-weight:700;color:var(--text);text-decoration:none;font-size:1.5rem;display:flex;align-items:center;gap:8px}
+.logo{height:36px;width:auto;display:inline-block}
+
+.nav{display:flex;gap:10px;align-items:center}
+.btn{display:inline-block;padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:600}
+.btn.primary{background:var(--accent);color:var(--accent-2);}
+.btn.primary:hover{background:#a89445}
+.btn.secondary{background:var(--surface);border:1px solid rgba(0,0,0,0.06);color:var(--text)}
+/* Basic layout and header styles for Spartan Search */
+
+:root{
+	/* Vegas Gold, White, and Black palette */
+	--bg: #f5f5f5;       
+	--surface: #ffffff; 
+	--muted: #0a0a0a;    
+	--accent: #C5B358;   
+	--accent-2: #0a0a0a;  
+	--text: #0a0a0a;
+
+}
+
+*{box-sizing:border-box}
+
+body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);margin:0}
+
+.container{max-width:1100px;margin:0 auto;padding:0 16px}
+
+.site-header{background:var(--surface);box-shadow:0 2px 8px rgba(0,0,0,0.06);position:sticky;top:0;z-index:100}
+
+.site-header .container{display:flex;align-items:center;justify-content:space-between;height:64px}
+
+.brand{font-weight:700;color:var(--text);text-decoration:none;font-size:1.5rem;display:flex;align-items:center;gap:8px}
+
+.logo{height:36px;width:auto;display:inline-block}
+
+.nav{display:flex;gap:10px;align-items:center}
+
+.btn{display:inline-block;padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:600}
+
+.btn.primary{background:var(--accent);color:var(--accent-2);}
+
+.btn.primary:hover{background:#a89445}
+
+.btn.secondary{background:var(--surface);border:1px solid rgba(0,0,0,0.06);color:var(--text)}
+
+.btn.secondary:hover{background:#efefef}
+
+.btn.outline{background:transparent;border:1px solid rgba(0,0,0,0.12);color:var(--accent-2)}
+
+.btn.outline:hover{background:var(--accent-2);color:var(--bg)}
+
+
+.content{padding:40px 16px}
+
+h1{font-size:2rem;margin-bottom:10px}
+
+h2{color:var(--muted);font-weight:600}
+
+@media (max-width:640px){
+
+	.site-header .container{height:56px}
+
+	.nav{gap:6px}
+
+	.brand{font-size:1rem}
+
+}
+
+/* Utility for pages with placeholder content */
+
+.placeholder{padding:40px;background:rgba(0,0,0,0.03);border-radius:8px}
+
+/* Form styles */
+
+.found-form{max-width:760px;margin:0 auto}
+
+.form-field{margin-bottom:12px;display:flex;flex-direction:column}
+
+.form-row{display:flex;gap:12px}
+
+.form-row .form-field{flex:1}
+
+label{font-weight:600;margin-bottom:6px;color:var(--muted)}
+
+input[type="text"], input[type="date"], textarea{padding:10px;border:1px solid rgba(0,0,0,0.08);border-radius:6px;font-size:1rem}
+
+textarea{resize:vertical}
+
+.submit-btn{display:inline-block}
+
+.message{margin-top:8px;padding:10px;border-radius:6px;display:block}
+
+.message.success{background:rgba(197,179,88,0.12);color:var(--text)}
+
+.message.error{background:rgba(255,0,0,0.06);color:#700}
+
+/* Admin styles */
+
+.admin-buttons{margin-bottom:20px;display:flex;gap:10px}
+
+.items-list{margin-top:20px}
+
+.item-card{background:rgba(0,0,0,0.02);border:1px solid rgba(0,0,0,0.08);border-radius:8px;padding:16px;margin-bottom:16px}
+
+.item-card h3{margin-top:0;color:var(--text)}
+
+.item-card p{margin:8px 0;color:var(--muted)}
+
+.item-actions{display:flex;gap:10px;margin-top:12px}
+
+.item-actions .btn{margin:0;padding:6px 10px;font-size:0.9rem}
+
+/* Search styles */
+
+.search-bar{display:flex;gap:10px;margin-bottom:20px}
+
+#search-input{flex:1;max-width:500px;padding:10px;border:1px solid rgba(0,0,0,0.08);border-radius:6px;font-size:1rem}
+
+/* Recent submissions grid */
+
+.recent-grid{display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:16px;margin:16px 0;padding:15px}
+
+.recent-grid .item-card{margin:0;width:100%}
+
+/* Ensure direct children don't span multiple columns */
+
+.recent-grid > *{grid-column:auto}
+
+/* Small visualization aid during development (remove later if desired) */
+
+.recent-grid{align-items:start}
+
+@media (max-width:960px){
+
+	.recent-grid{grid-template-columns:repeat(2,1fr)}
+
+}
+
+@media (max-width:640px){
+
+	.recent-grid{grid-template-columns:1fr}
+
+}
+
+/* Claim selection UI */
+
+.claim-search{max-width:900px;margin:0 auto 16px;display:flex;gap:12px;align-items:center}
+
+.claim-search input[type="search"]{flex:1;padding:10px;border:1px solid rgba(0,0,0,0.08);border-radius:6px;font-size:1rem}
+
+.claim-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px auto}
+
+.claim-card{background:var(--surface);border:1px solid rgba(0,0,0,0.06);border-radius:8px;padding:12px;cursor:pointer;transition:transform .08s ease,box-shadow .08s ease}
+
+.claim-card:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+
+.claim-card h4{margin:0 0 6px 0}
+
+.claim-card p{margin:0;color:var(--muted);font-size:0.95rem}
+
+.claim-card.selected{outline:3px solid var(--accent);box-shadow:0 8px 20px rgba(197,179,88,0.12)}
+
+@media (max-width:960px){
+
+	.claim-grid{grid-template-columns:repeat(2,1fr)}
+
+}
+
+@media (max-width:640px){
+
+  .claim-grid{grid-template-columns:1fr}
+
+}
+
+/* Remove default black focus outline on buttons */
+
+.btn:focus{outline:none;box-shadow:none}
+
+
+
+/* Modal popup styles */
+
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center}
+
+.modal-overlay.active{display:flex}
+
+.modal-content{background:var(--surface);border-radius:12px;padding:24px;max-width:480px;box-shadow:0 12px 48px rgba(0,0,0,0.15);text-align:center}
+
+.modal-content h2{margin-top:0;color:var(--text)}
+
+.modal-content p{color:var(--muted);margin-bottom:24px}
+
+.modal-buttons{display:flex;gap:12px;justify-content:center}
+
+.modal-buttons .btn{margin:0;flex:1}
+
+/* Claim/Inquiry type selector */
+
+.type-selector{display:flex;gap:12px;margin-bottom:16px}
+
+.type-option{flex:1}
+
+.type-option input[type="radio"]{display:none}
+
+.type-option label{display:block;padding:12px;border:1px solid rgba(0,0,0,0.08);border-radius:6px;cursor:pointer;text-align:center;font-weight:600;transition:all .1s ease}
+
+.type-option input[type="radio"]:checked + label{background:var(--accent);color:var(--accent-2);border-color:var(--accent)}
+
+/* More items CTA section */
+
+.more-items-cta{max-width:900px;margin:32px auto;text-align:center;padding:24px;background:rgba(197,179,88,0.06);border-radius:8px;border:1px solid rgba(197,179,88,0.12)}
+
+.more-items-cta p{color:var(--muted);margin-bottom:12px}
+
+.more-items-cta .btn{margin:0}
+
+/* Small badge for counts */
+
+.badge{display:inline-block;background:var(--accent);color:var(--surface);border-radius:12px;padding:2px 8px;font-size:0.85rem;margin-left:8px}
+
+/* Image thumbnail in item cards */
+
+.item-card img.card-thumb{max-width:100%;height:160px;object-fit:cover;border-radius:6px;margin-bottom:8px}

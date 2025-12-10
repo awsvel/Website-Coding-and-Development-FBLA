@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Admin - Inquiries</title>
+	<link rel="stylesheet" href="styles.css">
+	<link rel="icon" type="image/x-icon" href="assets/logo/spartan search logo.png">
+</head>
+<body>
+	<header class="site-header">
+		<div class="container">
+			<a class="brand" href="index.html">
+				<img src="assets/logo/spartan search logo.png" alt="Spartan Search logo" class="logo" />
+				Spartan Search
+			</a>
+			<nav class="nav">
+				<a class="btn outline" href="claimform.html">Lost Items</a>
+				<a class="btn outline" href="lost.html">Submission Form</a>
+				<a class="btn primary" href="managelost.html">Admin</a>
+			</nav>
+		</div>
+	</header>
+
+	<main class="container content">
+		<h1>Admin - Inquiries</h1>
+
+		<div class="admin-buttons">
+			<a href="managelost.html" class="btn secondary">← Back to Manage</a>
+		</div>
+
+		<section class="placeholder">
+			<h2>Instructions</h2>
+			<p>Review incoming inquiries. For each inquiry, reply to the user's email to follow up. When you have replied and resolved the request, click "Resolve" to remove the inquiry from the system.</p>
+		</section>
+
+		<div id="inquiries-list" class="items-list"></div>
+
+	</main>
+
+	<script src="add.js"></script>
+</body>
+</html>
