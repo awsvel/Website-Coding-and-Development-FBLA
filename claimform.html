@@ -1,0 +1,84 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spartan Search</title>
+    <link rel="stylesheet" href="styles.css">
+	<link rel="icon" type="image/x-icon" href="assets/logo/spartan search logo.png">
+</head>
+<body>
+	<header class="site-header">
+		<div class="container">
+			<a class="brand" href="index.html">
+				<img src="assets/logo/spartan search logo.png" alt="Spartan Search logo" class="logo" />
+				Spartan Search
+			</a>
+			<nav class="nav">
+				<a class="btn outline" href="claimform.html">Lost Items</a>
+				<a class="btn outline" href="lost.html">Submission Form</a>
+				<a class="btn primary" href="manage.html">Admin Login</a>
+			</nav>
+		</div>
+	</header>
+
+	<main class="container content">
+		<h1>Claim or Inquire</h1>
+		<p class="subhead" style="max-width:720px;margin:8px auto 20px;color:var(--muted);">You can either claim a lost item (if it's yours) or inquire about it to ask the finder a question. Example inquiry: "Is this a black backpack with a red keychain found in the library?"</p>
+
+        <section>
+            <!-- Selection step: search + clickable cards -->
+            <div class="claim-search">
+                <input id="claim-search-input" type="search" placeholder="Search items by name, description, or location" />
+                <button id="claim-next-btn" class="btn primary" disabled>Next</button>
+            </div>
+
+            <div id="claim-items-grid" class="claim-grid" aria-live="polite">
+                <!-- Items will be selectable cards -->
+            </div>
+
+		<!-- Details step: hidden until user clicks a card -->
+		<div id="claim-message" class="message" aria-live="polite" style="max-width:480px;margin:8px auto 0"></div>
+		<div id="claim-details" style="max-width:480px;margin:24px auto;display:none">
+			<form id="claim-form" class="found-form">
+				<div class="form-field">
+					<label>Inquiry Type</label>
+					<div class="type-selector">
+						<div class="type-option">
+							<input type="radio" id="type-claim" name="inquiry_type" value="claim" checked required />
+							<label for="type-claim">Claim</label>
+						</div>
+						<div class="type-option">
+							<input type="radio" id="type-inquire" name="inquiry_type" value="inquire" required />
+							<label for="type-inquire">Inquire</label>
+						</div>
+					</div>
+				</div>
+
+				<div class="form-field">
+					<label for="claim-item-name">Selected Item</label>
+					<input id="claim-item-name" name="item_name" type="text" readonly required />
+				</div>
+
+				<div class="form-field">
+					<label for="claim-name">Your Name</label>
+					<input id="claim-name" name="name" type="text" required placeholder="e.g. John Doe" />
+				</div>
+
+				<div class="form-field">
+					<label for="claim-email">Email</label>
+					<input id="claim-email" name="email" type="email" required placeholder="you@example.com" />
+				</div>
+
+				<div class="form-field" id="inquiry-text-field" style="display:none">
+					<label for="claim-inquiry">Your Inquiry</label>
+					<textarea id="claim-inquiry" name="inquiry" rows="4" placeholder="Enter your question or message for the finder"></textarea>
+				</div>
+
+				<div class="form-field">
+					<button type="submit" class="btn primary submit-btn" id="submit-claim-btn">Submit</button>
+				</div>
+			</form>
+		</div>        </section>
+	</main>
+
+	<script src="add.js"></script>
+</body>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Admin Login - Spartan Search</title>
+	<link rel="stylesheet" href="styles.css">
+	<link rel="icon" type="image/x-icon" href="assets/logo/spartan search logo.png">
+</head>
+<body>
+	<header class="site-header">
+		<div class="container">
+			<a class="brand" href="index.html">
+				<img src="assets/logo/spartan search logo.png" alt="Spartan Search logo" class="logo" />
+				Spartan Search
+			</a>
+			<nav class="nav">
+				<a class="btn outline" href="claimform.html">Lost Items</a>
+				<a class="btn outline" href="lost.html">Submission Form</a>
+				<a class="btn primary" href="manage.html">Admin Login</a>
+			</nav>
+		</div>
+	</header>
+
+	<main class="container content">
+		<h1>Admin Login</h1>
+
+		<section style="max-width:400px;margin:40px auto">
+			<form id="admin-login-form" class="found-form">
+				<div class="form-field">
+					<label for="username">Username</label>
+					<input id="username" name="username" type="text" required placeholder="" />
+				</div>
+
+				<div class="form-field">
+					<label for="password">Password</label>
+					<input id="password" name="password" type="password" required placeholder="" />
+				</div>
+
+				<div class="form-field">
+					<button type="submit" class="btn primary submit-btn">Login</button>
+				</div>
+
+				<div id="login-message" role="status" class="message" aria-live="polite"></div>
+			</form>
+		</section>
+	</main>
+
+
+	<script src="add.js"></script>
+</body>
+</html>
