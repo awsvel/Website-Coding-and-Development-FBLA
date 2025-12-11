@@ -1,6 +1,9 @@
 Welcome to my Website Coding and Development Submission: Spartan Search!
 Below will be instructions to operate and examine the website, plus additional details
 
+Competitor: Alina W. 
+School: Lakewood Senior High School
+
 OPERATING THE WEBSITE:
 1. Go to the link http://website-coding-and-development-fbla-wasup.vercel.app/
 2. Enter the website
