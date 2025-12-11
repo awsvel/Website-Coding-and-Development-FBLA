@@ -25,6 +25,11 @@
 	<main class="container content">
 		<h1>Admin Dashboard</h1>
 
+		<section class="placeholder">
+			<h2>Instructions</h2>
+			<p style="text-align:left">Use the <strong>Claims</strong> page to <strong>Approve</strong> or <strong>Deny</strong> incoming claims.</p>
+		</section>
+
 		<div class="admin-buttons" style="display:flex;gap:10px;align-items:center">
 			<a href="approve.html" class="btn primary">Approve Items <span class="badge" id="approvals-count">0</span></a>
 			<a href="admin_inquiries.html" class="btn outline">Inquiries <span class="badge" id="inquiries-count">0</span></a>
@@ -32,14 +37,6 @@
 			<a href="admin_claimed.html" class="btn outline">Claimed Items</a>
 			<div style="margin-left:auto"><a href="manage.html" class="btn secondary">Logout</a></div>
 		</div>
-
-		<section class="placeholder">
-			<h2>Admin Options</h2>
-			<ul style="text-align:left">
-				<li><strong>Approve Items:</strong> Review and approve found items before they appear publicly.</li>
-				<li><strong>Pending Submissions:</strong> Items are stored locally until approved and recorded.</li>
-			</ul>
-		</section>
 
 		<!-- Admin: Inquiries & Claims -->
 		<section id="admin-requests" style="display:block;margin-top:24px">

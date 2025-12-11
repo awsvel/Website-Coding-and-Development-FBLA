@@ -2,8 +2,8 @@
 
 const SUPABASE_URL = 'https://rohkvcnzjyajmkiejlyx.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaGt2Y256anlham1raWVqbHl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNjUwNjMsImV4cCI6MjA4MDc0MTA2M30.WAint38ZBokMKABYz-klK3KzzECZ9WK4L9dxe7qAviA'
-// Storage settings
-const STORAGE_BUCKET = 'found-items'
+// Storage settings (set to the bucket you created)
+const STORAGE_BUCKET = 'found item image'
 
 // Load the UMD build of supabase-js to avoid ESM/browser resolver issues
 function loadSupabaseUmd() {
@@ -54,6 +54,16 @@ function formatDateTime(val) {
 function renderRow(row, claimedTitles = []) {
   const card = document.createElement('div')
   card.className = 'item-card'
+
+  // If an image URL is present, show it at the top of the card
+  const imgUrl = row.image_url || row.image || row.image_path || row.thumbnail_url
+  if (imgUrl) {
+    const img = document.createElement('img')
+    img.className = 'card-thumb'
+    img.src = imgUrl
+    img.alt = String(row.title || row.item || row.item_name || 'Found item')
+    card.appendChild(img)
+  }
 
   const preferred = ['item_name', 'name', 'title', 'item', 'description']
   let headingKey = preferred.find(k => k in row && row[k])
@@ -111,7 +121,11 @@ function renderRow(row, claimedTitles = []) {
       k !== headingKey &&
       k !== 'found_date' &&
       k !== 'location' &&
-      k !== 'description'
+      k !== 'description' &&
+      k !== 'image_url' &&
+      k !== 'image_path' &&
+      k !== 'thumbnail_url' &&
+      k !== 'image'
   )
 
   keys.forEach(key => {
@@ -185,13 +199,9 @@ const displayedItems = data.slice(0, 3)
       listEl.appendChild(card)
     })
 
-// Show "more items" section if there are more than 3 items
+// Always show the "more items" section (button) if it exists
 if (moreItemsSection) {
-  if (data.length > 3) {
-    moreItemsSection.style.display = ''
-  } else {
-    moreItemsSection.style.display = 'none'
-  }
+  moreItemsSection.style.display = ''
 }
 
   } catch (err) {
@@ -278,10 +288,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const dateFoundInput = document.getElementById('dateFound')
   const formMessage = document.getElementById('form-message')
 
-  foundForm.addEventListener('submit', (e) => {
+  foundForm.addEventListener('submit', async (e) => {
     e.preventDefault()
-    // image input intentionally ignored (image uploads removed)
     const fileInput = document.getElementById('item-image')
+    const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null
 
     const data = {
       item: itemInput.value.trim(),
@@ -294,19 +304,66 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!data.item || !data.description || !data.location || !data.dateFound) {
       if (formMessage) {
         formMessage.textContent = 'Please fill in all fields before submitting.'
+        formMessage.style.color = 'red'
       }
       return
     }
 
-    // store temporarily for admin approval (do not redirect the user)
-    sessionStorage.setItem('pendingFoundItem', JSON.stringify(data))
+    try {
+      if (file) {
+        if (formMessage) {
+          formMessage.textContent = 'Uploading image...'
+          formMessage.style.color = ''
+        }
 
-    // show a friendly confirmation to the submitter and reset the form
-    if (formMessage) {
-      formMessage.textContent = 'Thanks — your submission has been saved and is awaiting admin approval.'
-      formMessage.style.color = 'green'
+        const supabaseModule = await loadSupabaseUmd()
+        const client = supabaseModule.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+        const ext = (file.name || '').split('.').pop() || 'jpg'
+        const filename = `found-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`
+        const path = filename
+
+        const { error: uploadErr } = await client.storage.from(STORAGE_BUCKET).upload(path, file)
+        if (uploadErr) {
+          console.error('Image upload error', uploadErr)
+          if (formMessage) {
+            formMessage.textContent = 'Image upload failed: ' + (uploadErr.message || String(uploadErr))
+            formMessage.style.color = 'red'
+          }
+          return
+        }
+
+        // Construct public URL for uploaded object (public bucket assumed)
+        // encode bucket and path to be safe when names contain spaces or special chars
+        const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${encodeURIComponent(STORAGE_BUCKET)}/${encodeURIComponent(path)}`
+        data.image_url = publicUrl
+        data.image_path = path
+      }
+
+      // store temporarily for admin approval in an array (support multiple pending items)
+      let pending = []
+      try {
+        const raw = sessionStorage.getItem('pendingFoundItems')
+        if (raw) pending = JSON.parse(raw)
+      } catch (e) {
+        console.warn('Error parsing pending items', e)
+      }
+      pending.push(data)
+      sessionStorage.setItem('pendingFoundItems', JSON.stringify(pending))
+
+      // show a friendly confirmation to the submitter and reset the form
+      if (formMessage) {
+        formMessage.textContent = 'Thanks — your submission has been saved and is awaiting admin approval.'
+        formMessage.style.color = 'green'
+      }
+      foundForm.reset()
+    } catch (err) {
+      console.error('Error handling submission', err)
+      if (formMessage) {
+        formMessage.textContent = 'Error submitting item: ' + (err.message || String(err))
+        formMessage.style.color = 'red'
+      }
     }
-    foundForm.reset()
   })
 })
 
@@ -319,83 +376,128 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (!pendingContainer) return // not on approve.html
 
-  const raw = sessionStorage.getItem('pendingFoundItem')
+  let pending = []
+  try {
+    const raw = sessionStorage.getItem('pendingFoundItems')
+    if (raw) pending = JSON.parse(raw)
+  } catch (e) {
+    console.warn('Error parsing pending items', e)
+  }
 
-  if (!raw) {
+  if (!pending || pending.length === 0) {
     // nothing waiting for approval
     pendingContainer.style.display = 'none'
     if (noItems) noItems.style.display = 'block'
     return
   }
 
-  const data = JSON.parse(raw)
-
-  // Build card with details + buttons
-  pendingContainer.innerHTML = `
-    <div class="item-card">
+  // Render all pending items with individual approve/cancel buttons
+  pendingContainer.innerHTML = ''
+  pending.forEach((data, index) => {
+    const card = document.createElement('div')
+    card.className = 'item-card'
+    card.innerHTML = `
+      ${data.image_url ? `<img class="card-thumb" src="${escapeHtml(data.image_url)}" alt="${escapeHtml(data.item || '')}" />
+      <div style="margin-bottom:8px;"><button class="view-image-btn" data-index="${index}" class="btn outline">View Image</button></div>` : ''}
       <h3>${escapeHtml(data.item || '')}</h3>
       <p><strong>Submitted:</strong> ${escapeHtml(formatDateTime(data.created_at) || '')}</p>
       <p><strong>Found on:</strong> ${escapeHtml(data.dateFound || '')}</p>
       <p><strong>Location found:</strong> ${escapeHtml(data.location || '')}</p>
       <p><strong>Details:</strong> ${escapeHtml(data.description || '')}</p>
       <div class="admin-buttons">
-        <button id="approve-btn" class="btn primary">Approve & Save</button>
-        <button id="cancel-btn" class="btn outline">Cancel</button>
+        <button class="approve-btn" data-index="${index}" class="btn primary">Approve & Save</button>
+        <button class="cancel-btn" data-index="${index}" class="btn outline">Cancel</button>
       </div>
-      <div id="approve-message" class="message" aria-live="polite"></div>
-    </div>
-  `
+      <div class="approve-message" data-index="${index}" class="message" aria-live="polite"></div>
+    `
+    pendingContainer.appendChild(card)
+  })
 
-  const approveBtn = document.getElementById('approve-btn')
-  const cancelBtn = document.getElementById('cancel-btn')
-  const msgEl = document.getElementById('approve-message')
-
-  if (cancelBtn) {
-    cancelBtn.addEventListener('click', () => {
-      sessionStorage.removeItem('pendingFoundItem')
-      pendingContainer.style.display = 'none'
-      if (noItems) noItems.style.display = 'block'
-    })
-  }
-
-  if (approveBtn) {
-    approveBtn.addEventListener('click', async () => {
-      if (msgEl) {
-        msgEl.textContent = 'Saving to database...'
+  // Attach handlers to all pending items
+  pendingContainer.querySelectorAll('.cancel-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.getAttribute('data-index'), 10)
+      pending.splice(idx, 1)
+      if (pending.length === 0) {
+        sessionStorage.removeItem('pendingFoundItems')
+        pendingContainer.style.display = 'none'
+        if (noItems) noItems.style.display = 'block'
+      } else {
+        sessionStorage.setItem('pendingFoundItems', JSON.stringify(pending))
+        // Re-render to update indices
+        location.reload()
       }
+    })
+  })
+
+  // Attach image view handlers
+  pendingContainer.querySelectorAll('.view-image-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.getAttribute('data-index'), 10)
+      const item = pending[idx]
+      if (item && item.image_url) {
+        try {
+          window.open(item.image_url, '_blank')
+        } catch (e) { console.error('Error opening image', e) }
+      }
+    })
+  })
+
+  // Attach handlers to all approve buttons
+  pendingContainer.querySelectorAll('.approve-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const idx = parseInt(btn.getAttribute('data-index'), 10)
+      const data = pending[idx]
+      const msgEl = pendingContainer.querySelector(`.approve-message[data-index="${idx}"]`)
+
+      if (msgEl) msgEl.textContent = 'Saving to database...'
 
       try {
         const supabaseModule = await loadSupabaseUmd()
         const client = supabaseModule.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-
-        if (error) {
-          console.error('Insert error:', error)
-          if (msgEl) {
-            msgEl.textContent = 'Error saving item: ' + (error.message || String(error))
+        // Insert into found_items table (map pending data to table columns)
+        try {
+          const insertRow = {
+            title: data.item || null,
+            description: data.description || null,
+            location: data.location || null,
+            found_date: data.dateFound || null
           }
-          return
-        }
 
-        // success: show confirmation and stay on approve page
-        console.log('Item inserted successfully')
-        sessionStorage.removeItem('pendingFoundItem')
-        if (msgEl) {
-          msgEl.textContent = 'Item approved and saved. It will appear on the homepage shortly.'
-          msgEl.style.color = 'green'
+          // include image fields if available
+          if (data.image_url) insertRow.image_url = data.image_url
+          if (data.image_path) insertRow.image_path = data.image_path
+          const { data: inserted, error: insertErr } = await client.from('found_items').insert([insertRow])
+          if (insertErr) {
+            console.error('Insert error:', insertErr)
+            if (msgEl) msgEl.textContent = 'Error saving item: ' + (insertErr.message || String(insertErr))
+            return
+          }
+
+          // success: remove this item from pending and re-render
+          console.log('Item inserted successfully', inserted)
+          pending.splice(idx, 1)
+          if (pending.length === 0) {
+            sessionStorage.removeItem('pendingFoundItems')
+            pendingContainer.style.display = 'none'
+            if (noItems) noItems.style.display = 'block'
+          } else {
+            sessionStorage.setItem('pendingFoundItems', JSON.stringify(pending))
+            // Re-render to update indices
+            location.reload()
+          }
+        } catch (insErr) {
+          console.error('Unexpected insert error', insErr)
+          if (msgEl) msgEl.textContent = 'Error saving item: ' + (insErr.message || String(insErr))
         }
-        // hide pending container and show the no-items placeholder
-        pendingContainer.style.display = 'none'
-        if (noItems) noItems.style.display = 'block'
 
       } catch (err) {
         console.error(err)
-        if (msgEl) {
-          msgEl.textContent = 'Error loading Supabase: ' + (err.message || String(err))
-        }
+        if (msgEl) msgEl.textContent = 'Error loading Supabase: ' + (err.message || String(err))
       }
     })
-  }
+  })
 })
 
 
@@ -455,6 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
       div.setAttribute('data-id', String(row.id || ''))
       div.setAttribute('data-title', row.title || '')
       div.innerHTML = `
+        ${row.image_url ? `<img class="card-thumb" src="${escapeHtml(row.image_url)}" alt="${escapeHtml(row.title || '')}" />` : ''}
         <h4>${escapeHtml(row.title || '')}</h4>
         <p>${escapeHtml((row.description || '').slice(0, 120))}</p>
         <p style="font-size:0.85rem;color:var(--muted);">${escapeHtml(row.location || '')}</p>
@@ -509,7 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const supabaseModule = await loadSupabaseUmd()
         const client = supabaseModule.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-        const { data, error } = await client.from('found_items').select('id,title,description,location,found_date').order('id', { ascending: false })
+        const { data, error } = await client.from('found_items').select('id,title,description,location,found_date,image_url,image_path').order('id', { ascending: false })
       if (error) {
         claimGrid.innerHTML = `<div class="message error">Error loading items: ${escapeHtml(error.message || String(error))}</div>`
         console.error(error)
@@ -702,18 +805,16 @@ document.addEventListener('DOMContentLoaded', () => {
 })
 
 
-// ADMIN INQUIRY + CLAIMS MANAGEMENT
+// ADMIN INQUIRY + CLAIMS MANAGEMENT (simplified)
 document.addEventListener('DOMContentLoaded', () => {
   const tabInquiries = document.getElementById('tab-inquiries')
   const tabClaims = document.getElementById('tab-claims')
   const inquiriesList = document.getElementById('inquiries-list')
   const claimsList = document.getElementById('claims-list')
-
   const claimedList = document.getElementById('claimed-list')
 
   if (!inquiriesList && !claimsList && !claimedList) return // not on any admin requests page
 
-  // tab switching
   function showInquiries() {
     if (inquiriesList) inquiriesList.style.display = ''
     if (claimsList) claimsList.style.display = 'none'
@@ -738,27 +839,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return
       }
 
-      const inquiries = (data || []).filter(r => r.claiming === false)
-      const claims = (data || []).filter(r => r.claiming === true)
+      const inquiries = (data || []).filter(r => r.claiming === false && (!r.status || (r.status !== 'approved' && r.status !== 'denied')))
+      const claims = (data || []).filter(r => r.claiming === true && (!r.status || (r.status !== 'approved' && r.status !== 'denied')))
+      const resolved = (data || []).filter(r => r.status === 'approved' || r.status === 'denied')
 
       // Update admin counts if these elements exist on the page
       try {
         const approvalsEl = document.getElementById('approvals-count')
         const inquiriesEl = document.getElementById('inquiries-count')
         const claimsEl = document.getElementById('claims-count')
-
-        // approvals: check for pending found item in sessionStorage (simple heuristic)
-        const approvalsCount = sessionStorage.getItem('pendingFoundItem') ? 1 : 0
-
+        let approvalsCount = 0
+        try {
+          const rawPending = sessionStorage.getItem('pendingFoundItems')
+          if (rawPending) {
+            const parsed = JSON.parse(rawPending)
+            approvalsCount = Array.isArray(parsed) ? parsed.length : 0
+          }
+        } catch (e) { console.warn('Error counting pending', e) }
         if (approvalsEl) approvalsEl.textContent = String(approvalsCount)
         if (inquiriesEl) inquiriesEl.textContent = String(inquiries.length || 0)
         if (claimsEl) claimsEl.textContent = String(claims.length || 0)
       } catch (e) {
-        // non-fatal
         console.error('Error updating admin counts', e)
       }
 
-      // render inquiries
+      // Render inquiries (managelost.html)
       if (inquiriesList) {
         if (inquiries.length === 0) {
           inquiriesList.innerHTML = '<div class="message">No inquiries.</div>'
@@ -781,7 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // render claims
+      // Render claims (admin_claims.html)
       if (claimsList) {
         if (claims.length === 0) {
           claimsList.innerHTML = '<div class="message">No claims.</div>'
@@ -795,7 +900,8 @@ document.addEventListener('DOMContentLoaded', () => {
               <p><strong>Submitted:</strong> ${escapeHtml(formatDateTime(entry.created_at) || '')}</p>
               <p><strong>From:</strong> ${escapeHtml(entry.name || '')} &lt;${escapeHtml(entry.email || '')}&gt;</p>
               <div class="admin-buttons">
-                <button class="btn primary resolve-claim" data-id="${entry.id}" data-item="${escapeHtml(entry.item_name || '')}" data-name="${escapeHtml(entry.name || '')}" data-email="${escapeHtml(entry.email || '')}">Resolve (archive & remove)</button>
+                <button class="btn primary approve-claim" data-id="${entry.id}" data-item="${escapeHtml(entry.item_name || '')}" data-name="${escapeHtml(entry.name || '')}" data-email="${escapeHtml(entry.email || '')}">Approve (archive & remove)</button>
+                <button class="btn outline deny-claim" data-id="${entry.id}" data-item="${escapeHtml(entry.item_name || '')}">Deny (return to found)</button>
               </div>
             `
             claimsList.appendChild(div)
@@ -803,7 +909,109 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // attach handlers
+      // Render resolved/archived list (if present)
+      if (claimedList) {
+        try {
+          const { data: claimedData, error: claimedErr } = await client.from('claimed_items').select('*').order('id', { ascending: true })
+          if (claimedErr) {
+            claimedList.innerHTML = `<div class="message error">Error loading claimed items: ${escapeHtml(claimedErr.message || String(claimedErr))}</div>`
+          } else if (!claimedData || claimedData.length === 0) {
+            claimedList.innerHTML = '<div class="message">No claimed items found.</div>'
+          } else {
+            claimedList.innerHTML = ''
+            claimedData.forEach(ci => {
+              const d = document.createElement('div')
+              d.className = 'item-card'
+              d.innerHTML = `
+                  <h3>${escapeHtml(ci.title || '')}</h3>
+                  <p><strong>From:</strong> ${escapeHtml(ci.claimant_name || '')} &lt;${escapeHtml(ci.claimant_email || '')}&gt;</p>
+                  <p><strong>Resolved:</strong> ${escapeHtml(formatDateTime(ci.resolved_at || ci.created_at || ''))}</p>
+                `
+              claimedList.appendChild(d)
+            })
+          }
+        } catch (err) {
+          claimedList.innerHTML = `<div class="message error">Error loading claimed items: ${escapeHtml(err.message || String(err))}</div>`
+        }
+      }
+
+      // Attach handlers for admin actions
+      // Approve claim: set status='approved', archive into claimed_items, remove from found_items
+      if (claimsList) {
+        claimsList.querySelectorAll('.approve-claim').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id')
+            const itemName = btn.getAttribute('data-item')
+            const claimantName = btn.getAttribute('data-name')
+            const claimantEmail = btn.getAttribute('data-email')
+            if (!confirm('Approve claim? This will archive the item and remove it from the found items listing.')) return
+
+            try {
+              // update claim status
+              const { error: upErr } = await client.from('claims').update({ status: 'approved' }).eq('id', id)
+              if (upErr) { alert('Error updating claim status: ' + (upErr.message || String(upErr))); console.error(upErr); return }
+
+              // archive
+              try {
+                await client.from('claimed_items').insert([{
+                  title: itemName,
+                  claimant_name: claimantName || null,
+                  claimant_email: claimantEmail || null,
+                  resolved_at: new Date().toISOString()
+                }])
+              } catch (archiveErr) { console.warn('Archive error', archiveErr) }
+
+              // remove from found_items
+              try {
+                const { error: delErr } = await client.from('found_items').delete().eq('title', itemName)
+                if (delErr) console.warn('Error removing found item:', delErr)
+              } catch (e) { console.error('Error deleting found_items entry', e) }
+
+              alert('Claim approved and archived.')
+              loadRequests()
+            } catch (err) {
+              console.error(err)
+              alert('Unexpected error approving claim: ' + (err.message || String(err)))
+            }
+          })
+        })
+
+        // Deny claim: set status='denied' and ensure the item exists in found_items
+        claimsList.querySelectorAll('.deny-claim').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id')
+            const itemName = btn.getAttribute('data-item')
+            if (!confirm('Deny this claim? This will mark the claim as denied and ensure the item is available in the found listings.')) return
+
+            try {
+              const { error: upErr } = await client.from('claims').update({ status: 'denied' }).eq('id', id)
+              if (upErr) { alert('Error updating claim status: ' + (upErr.message || String(upErr))); console.error(upErr); return }
+
+              // Ensure the found_items row exists (insert minimal record if missing)
+              try {
+                const { data: existing } = await client.from('found_items').select('id').eq('title', itemName).limit(1)
+                if (!existing || existing.length === 0) {
+                  try {
+                    await client.from('found_items').insert([{ title: itemName }])
+                  } catch (insErr) {
+                    console.warn('Could not re-insert found_items row:', insErr)
+                  }
+                }
+              } catch (selErr) {
+                console.warn('Error ensuring found_items exists:', selErr)
+              }
+
+              alert('Claim denied and item returned to found listings (if needed).')
+              loadRequests()
+            } catch (err) {
+              console.error(err)
+              alert('Unexpected error denying claim: ' + (err.message || String(err)))
+            }
+          })
+        })
+      }
+
+      // Attach handlers for inquiries (delete)
       if (inquiriesList) {
         inquiriesList.querySelectorAll('.resolve-inquiry').forEach(btn => {
           btn.addEventListener('click', async (e) => {
@@ -811,11 +1019,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!confirm('Resolve inquiry? Make sure you have replied to the user by email before resolving. This will DELETE the inquiry.')) return
             try {
               const { error } = await client.from('claims').delete().eq('id', id)
-              if (error) {
-                alert('Error resolving inquiry: ' + (error.message || String(error)))
-                console.error(error)
-                return
-              }
+              if (error) { alert('Error resolving inquiry: ' + (error.message || String(error))); console.error(error); return }
               alert('Inquiry resolved and deleted.')
               loadRequests()
             } catch (err) {
@@ -826,90 +1030,15 @@ document.addEventListener('DOMContentLoaded', () => {
         })
       }
 
-      if (claimsList) {
-        claimsList.querySelectorAll('.resolve-claim').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            const id = btn.getAttribute('data-id')
-            const itemName = btn.getAttribute('data-item')
-            const claimantName = btn.getAttribute('data-name')
-            const claimantEmail = btn.getAttribute('data-email')
-            if (!confirm('Resolve claim? This will DELETE the claim and remove the corresponding found item.')) return
-            try {
-              // archive into claimed_items table (if available)
-              try {
-                await client.from('claimed_items').insert([{
-                  title: itemName,
-                  claimant_name: claimantName || null,
-                  claimant_email: claimantEmail || null,
-                  resolved_at: new Date().toISOString()
-                }])
-              } catch (archiveErr) {
-                // non-fatal: log and continue
-                console.warn('Error archiving claimed item (claimed_items table may not exist):', archiveErr)
-              }
-
-              // delete claim row
-              const { error: delClaimErr } = await client.from('claims').delete().eq('id', id)
-              if (delClaimErr) {
-                alert('Error deleting claim: ' + (delClaimErr.message || String(delClaimErr)))
-                console.error(delClaimErr)
-                return
-              }
-
-              // delete found_items with matching title
-              const { error: delItemErr } = await client.from('found_items').delete().eq('title', itemName)
-              if (delItemErr) {
-                alert('Claim deleted but error removing found item: ' + (delItemErr.message || String(delItemErr)))
-                console.error(delItemErr)
-                loadRequests()
-                return
-              }
-
-              alert('Claim archived and associated found item removed.')
-              loadRequests()
-            } catch (err) {
-              console.error(err)
-              alert('Unexpected error resolving claim: ' + (err.message || String(err)))
-            }
-          })
-        })
-      }
-
-      // If there is a claimed-list container (archived items), load from claimed_items
-      const claimedListEl = document.getElementById('claimed-list')
-      if (claimedListEl) {
-        try {
-          const { data: claimedData, error: claimedErr } = await client.from('claimed_items').select('*').order('id', { ascending: true })
-          if (claimedErr) {
-            claimedListEl.innerHTML = `<div class="message error">Error loading claimed items: ${escapeHtml(claimedErr.message || String(claimedErr))}</div>`
-          } else if (!claimedData || claimedData.length === 0) {
-            claimedListEl.innerHTML = '<div class="message">No claimed items found.</div>'
-          } else {
-            claimedListEl.innerHTML = ''
-            claimedData.forEach(ci => {
-              const d = document.createElement('div')
-              d.className = 'item-card'
-              d.innerHTML = `
-                  <h3>${escapeHtml(ci.title || '')}</h3>
-                  <p><strong>From:</strong> ${escapeHtml(ci.claimant_name || '')} &lt;${escapeHtml(ci.claimant_email || '')}&gt;</p>
-                  <p><strong>Resolved:</strong> ${escapeHtml(formatDateTime(ci.resolved_at || ci.created_at || ''))}</p>
-                `
-              claimedListEl.appendChild(d)
-            })
-          }
-        } catch (err) {
-          claimedListEl.innerHTML = `<div class="message error">Error loading claimed items: ${escapeHtml(err.message || String(err))}</div>`
-        }
-      }
-
     } catch (err) {
       console.error(err)
       if (inquiriesList) inquiriesList.innerHTML = `<div class="message error">Error loading requests: ${escapeHtml(err.message || String(err))}</div>`
+      if (claimsList) claimsList.innerHTML = `<div class="message error">Error loading requests: ${escapeHtml(err.message || String(err))}</div>`
     }
   }
 
-  // initial state: show inquiries tab
-  showInquiries()
+  // Initial load
+  if (tabInquiries) showInquiries()
   loadRequests()
 
 })

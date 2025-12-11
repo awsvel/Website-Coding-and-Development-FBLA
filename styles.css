@@ -238,4 +238,8 @@ textarea{resize:vertical}
 
 /* Image thumbnail in item cards */
 
+/* Global thumbnail class used across item cards and claim cards */
+.card-thumb{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block}
+
+/* Backward-compatible selector for item-card-specific images (keeps previous sizing for older browsers) */
 .item-card img.card-thumb{max-width:100%;height:160px;object-fit:cover;border-radius:6px;margin-bottom:8px}
